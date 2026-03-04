@@ -1,19 +1,19 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
-function ProfileAvatar(){
+function ProfileAvatar() {
 
   const [avatar,setAvatar] = useState(null);
-  const inputRef = useRef();
 
   useEffect(()=>{
 
-    const savedAvatar = localStorage.getItem("profile-avatar");
+    const savedAvatar = localStorage.getItem("avatar");
 
     if(savedAvatar){
       setAvatar(savedAvatar);
     }
 
   },[]);
+
 
   function handleUpload(e){
 
@@ -23,34 +23,39 @@ function ProfileAvatar(){
 
     const reader = new FileReader();
 
-    reader.onload = ()=>{
+    reader.onload = () => {
+      localStorage.setItem("avatar", reader.result);
       setAvatar(reader.result);
-      localStorage.setItem("profile-avatar", reader.result);
     };
 
     reader.readAsDataURL(file);
   }
 
-  return(
+
+  return (
+
     <div className="profile-avatar">
 
-      <img
-        src={avatar || "https://i.pravatar.cc/40"}
-        alt="profile"
-        onClick={()=>inputRef.current.click()}
-      />
+      <label className="avatar-upload">
 
-      <input
-        type="file"
-        accept="image/*"
-        ref={inputRef}
-        style={{display:"none"}}
-        onChange={handleUpload}
-      />
+        <img
+          src={avatar || "https://ui-avatars.com/api/?name=User"}
+          alt="profile avatar"
+          className="avatar"
+        />
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleUpload}
+          hidden
+        />
+
+      </label>
 
     </div>
-  );
 
+  );
 }
 
 export default ProfileAvatar;

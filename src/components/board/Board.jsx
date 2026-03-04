@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import Column from "./Column";
 import TaskDetails from "./TaskDetails";
-import { initialTasks } from "../../data/tasks";
+import TaskCard from "./TaskCard";
 import Modal from "../ui/Modal";
 
 import {
   DndContext,
-  closestCorners,
+  closestCenter,
   PointerSensor,
   useSensor,
   useSensors,
@@ -15,65 +15,78 @@ import {
 
 function Board({ search }) {
 
-  const [tasks,setTasks]=useState(()=>{
-    const saved=localStorage.getItem("tasks");
-    return saved ? JSON.parse(saved) : initialTasks;
+  const [tasks,setTasks] = useState(()=>{
+    const saved = localStorage.getItem("tasks");
+    return saved ? JSON.parse(saved) : [];
   });
 
-  const [selectedTask,setSelectedTask]=useState(null);
-  const [activeTask,setActiveTask]=useState(null);
+  const [selectedTask,setSelectedTask] = useState(null);
+  const [activeTask,setActiveTask] = useState(null);
 
-  const [addModal,setAddModal]=useState(false);
-  const [addColumn,setAddColumn]=useState(null);
+  const [addModal,setAddModal] = useState(false);
+  const [addColumn,setAddColumn] = useState(null);
+  const [title,setTitle] = useState("");
 
-  const [title,setTitle]=useState("");
-  const [priority,setPriority]=useState("low");
-  const [label,setLabel]=useState("");
-  const [dueDate,setDueDate]=useState("");
-
-  const [filterPriority,setFilterPriority]=useState("all");
-
-  const sensors=useSensors(
+  const sensors = useSensors(
     useSensor(PointerSensor,{
-      activationConstraint:{distance:8}
+      activationConstraint:{ distance:8 }
     })
   );
 
-  const columns=[
+  const columns = [
     {title:"To Do",status:"todo"},
     {title:"In Progress",status:"inProgress"},
     {title:"Completed",status:"done"}
   ];
 
-  const filteredTasks = tasks
-.filter(task => {
-
-  const text = search.toLowerCase();
-
-  const titleMatch =
-  task.title?.toLowerCase().includes(text);
-
-  const descriptionMatch =
-  task.description?.toLowerCase().includes(text);
-
-  const labelMatch =
-  task.label?.toLowerCase().includes(text);
-
-  return titleMatch || descriptionMatch || labelMatch;
-
-})
-.filter(task =>
-  filterPriority === "all" || task.priority === filterPriority
-);
+  const filteredTasks = tasks.filter(task =>
+    task.title.toLowerCase().includes(search.toLowerCase())
+  );
 
   useEffect(()=>{
     localStorage.setItem("tasks",JSON.stringify(tasks));
   },[tasks]);
 
+  useEffect(()=>{
+
+    const firstVisit = localStorage.getItem("kanban-intro");
+
+    if(!firstVisit){
+
+      const introTask = {
+        id: Date.now(),
+        title: "WELCOME",
+        status: "todo",
+        priority: "medium",
+        description: `This is my Kanban Board built with React.
+
+Features included:
+
+• Drag & Drop tasks between columns
+• Dark Mode toggle
+• Task priorities (Low / Medium / High)
+• Add comments to tasks
+• Upload your own profile avatar
+• Responsive design for mobile and desktop
+
+Feel free to create your own tasks and start organizing your workflow.`,
+        images: [],
+        comments: []
+      };
+
+      setTasks([introTask]);
+
+      localStorage.setItem("kanban-intro",true);
+    }
+
+  },[]);
+
+
   function openAddTask(status){
     setAddColumn(status);
     setAddModal(true);
   }
+
 
   function createTask(e){
 
@@ -81,49 +94,49 @@ function Board({ search }) {
 
     if(!title.trim()) return;
 
-    const avatar=`https://i.pravatar.cc/40?img=${Math.floor(Math.random()*70)}`;
-
     const newTask={
       id:Date.now(),
       title,
       status:addColumn,
-      priority,
-      label,
-      dueDate,
-      users:[avatar],
-      comments:[],
-      description:""
+      priority:"low",
+      description:"",
+      images:[],
+      comments:[]
     };
 
     setTasks(prev=>[...prev,newTask]);
 
     setTitle("");
-    setPriority("low");
-    setLabel("");
-    setDueDate("");
     setAddModal(false);
-
   }
+
 
   function deleteTask(id){
     setTasks(prev=>prev.filter(t=>t.id!==id));
   }
 
+
   function openTask(task){
     setSelectedTask(task);
   }
 
+
   function updateTask(id,data){
+
     setTasks(prev =>
       prev.map(task =>
         task.id===id ? {...task,...data} : task
       )
     );
+
   }
+
 
   function handleDragStart(event){
 
-    const task=tasks.find(t=>t.id===event.active.id);
+    const { active } = event;
+
+    const task = tasks.find(t => t.id === active.id);
 
     if(task){
       setActiveTask(task);
@@ -131,181 +144,120 @@ function Board({ search }) {
 
   }
 
+
   function handleDragEnd(event){
 
-    const {active,over}=event;
+    const { active, over } = event;
 
-    if(!over){
-      setActiveTask(null);
-      return;
-    }
+    setActiveTask(null);
 
-    const activeId=active.id;
-    const overId=over.id;
+    if(!over) return;
 
-    const activeTask=tasks.find(t=>t.id===activeId);
+    const activeId = active.id;
+    const overId = over.id;
 
-    if(!activeTask){
-      setActiveTask(null);
-      return;
-    }
+    const columnIds = ["todo","inProgress","done"];
 
-    const columnIds=["todo","inProgress","done"];
-
-    let newStatus=activeTask.status;
+    let newStatus = null;
 
     if(columnIds.includes(overId)){
-      newStatus=overId;
-    }else{
+      newStatus = overId;
+    } else {
 
-      const overTask=tasks.find(t=>t.id===overId);
+      const overTask = tasks.find(t => t.id === overId);
 
       if(overTask){
-        newStatus=overTask.status;
+        newStatus = overTask.status;
       }
 
     }
 
+    if(!newStatus) return;
+
     setTasks(prev =>
       prev.map(task =>
-        task.id===activeId
-          ? {...task,status:newStatus}
+        task.id === activeId
+          ? { ...task, status: newStatus }
           : task
       )
     );
-
-    setActiveTask(null);
-
   }
+
 
   return(
 
     <>
-
-      <div className="board-toolbar">
-
-        <select
-        value={filterPriority}
-        onChange={(e)=>setFilterPriority(e.target.value)}
-        >
-          <option value="all">All priorities</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-
-      </div>
-
       <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       >
 
         <div className="board">
 
-          {columns.map(col => (
+          {columns.map(col=>(
 
             <Column
-            key={col.status}
-            title={col.title}
-            status={col.status}
-            tasks={filteredTasks}
-            openAddTask={openAddTask}
-            deleteTask={deleteTask}
-            openTask={openTask}
+              key={col.status}
+              title={col.title}
+              status={col.status}
+              tasks={filteredTasks}
+              openAddTask={openAddTask}
+              deleteTask={deleteTask}
+              openTask={openTask}
             />
 
           ))}
 
         </div>
 
-        <DragOverlay dropAnimation={null}>
+        <DragOverlay>
 
-          {activeTask && (
+          {activeTask ? (
 
-            <div className="drag-preview">
+            <TaskCard
+              task={activeTask}
+              deleteTask={()=>{}}
+              openTask={()=>{}}
+            />
 
-              <div className="task-header">
-
-                <div className="task-left">
-
-                  <div className={`priority-dot priority-${activeTask.priority}`}></div>
-
-                  <span className="badge">
-                    {activeTask.priority}
-                  </span>
-
-                </div>
-
-              </div>
-
-              <p className="task-title">
-                {activeTask.title}
-              </p>
-
-            </div>
-
-          )}
+          ) : null}
 
         </DragOverlay>
 
       </DndContext>
 
-      <Modal
-      isOpen={addModal}
-      onClose={()=>setAddModal(false)}
-      >
+
+      <Modal isOpen={addModal} onClose={()=>setAddModal(false)}>
 
         <h3>Create Task</h3>
+        <p>Add a new task to this column</p>
 
         <form onSubmit={createTask}>
 
           <input
-          type="text"
-          placeholder="Task title..."
-          value={title}
-          onChange={(e)=>setTitle(e.target.value)}
-          />
-
-          <select
-          value={priority}
-          onChange={(e)=>setPriority(e.target.value)}
-          >
-            <option value="low">Low priority</option>
-            <option value="medium">Medium priority</option>
-            <option value="high">High priority</option>
-          </select>
-
-          <input
-          type="text"
-          placeholder="Label (design, bug, feature)"
-          value={label}
-          onChange={(e)=>setLabel(e.target.value)}
-          />
-
-          <input
-          type="date"
-          value={dueDate}
-          onChange={(e)=>setDueDate(e.target.value)}
+            type="text"
+            placeholder="Task title..."
+            value={title}
+            onChange={(e)=>setTitle(e.target.value)}
           />
 
           <div className="modal-actions">
 
             <button
-            type="button"
-            className="modal-btn modal-cancel"
-            onClick={()=>setAddModal(false)}
+              type="button"
+              className="modal-btn modal-cancel"
+              onClick={()=>setAddModal(false)}
             >
               Cancel
             </button>
 
             <button
-            type="submit"
-            className="modal-btn modal-create"
+              type="submit"
+              className="modal-btn modal-create"
             >
-              Create Task
+              Create
             </button>
 
           </div>
@@ -314,12 +266,13 @@ function Board({ search }) {
 
       </Modal>
 
+
       {selectedTask && (
 
         <TaskDetails
-        task={selectedTask}
-        close={()=>setSelectedTask(null)}
-        updateTask={updateTask}
+          task={selectedTask}
+          close={()=>setSelectedTask(null)}
+          updateTask={updateTask}
         />
 
       )}

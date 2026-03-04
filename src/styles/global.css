@@ -1161,3 +1161,99 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{
   border-color:#38bdf8;
 
 }
+
+
+@media (max-width: 900px){
+
+.board{
+  flex-direction:column;
+  align-items:center;
+  gap:30px;
+  padding:20px;
+}
+
+.column{
+  width:100%;
+  max-width:380px;
+}
+
+.header{
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.search-bar{
+  width:100%;
+}
+
+}
+
+
+@media (max-width:500px){
+
+.board{
+  padding:15px;
+}
+
+.column{
+  padding:15px;
+}
+
+.task-card{
+  padding:12px;
+}
+
+}
+
+.avatar{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  object-fit:cover;
+  cursor:pointer;
+  border:2px solid #00b2ff;
+  transition:all 0.2s ease;
+}
+
+.avatar:hover{
+  transform:scale(1.06);
+  box-shadow:0 4px 12px rgba(0,0,0,0.2);
+}
+
+.profile-avatar{
+  display:flex;
+  align-items:center;
+}
+
+.avatar-upload{
+  display:flex;
+  align-items:center;
+}
+
+@media (max-width: 768px){
+
+.search-bar{
+  width: 55%;
+  min-width: 140px;
+}
+
+.search-bar input{
+  font-size: 14px;
+  padding: 6px 10px;
+}
+
+.search-bar svg{
+  width:16px;
+  height:16px;
+}
+
+.avatar{
+  width:32px;
+  height:32px;
+}
+
+body{
+  overflow-x:hidden;
+}
+
+}
